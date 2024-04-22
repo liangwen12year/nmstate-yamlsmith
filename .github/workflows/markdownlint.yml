@@ -1,0 +1,22 @@
+---
+name: Markdown Lint
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Lint all markdown files
+        uses: docker://avtodev/markdown-lint:master
+        with:
+          args: >-
+            **/*.md
+          config: .markdownlint.yaml
