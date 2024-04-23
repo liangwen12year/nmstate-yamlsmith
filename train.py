@@ -1,4 +1,20 @@
+#!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
+
+"""
+This module is intended to train the Polyglot Model for translating natural language
+into nmstate states.
+
+Dependencies:
+- transformers: Provides the models and tokenizers used for sequence generation.
+- datasets: Used for loading and preprocessing the dataset.
+- torch: Utilized for model operations, especially for managing device placement
+  (CPU/GPU).
+
+Note:
+- Ensure that the CUDA-capable device is available for GPU acceleration when training
+  and generating files, as the operations are compute-intensive.
+"""
 
 # pylint: disable=import-error
 from transformers import (
@@ -9,7 +25,6 @@ from transformers import (
     GPT2Tokenizer,
 )
 from datasets import load_dataset
-from sklearn.model_selection import train_test_split
 import torch
 
 
@@ -31,14 +46,17 @@ def generate_yaml_files(model, tokenizer, device, num_files=10):
     for _ in range(num_files):
         input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
         # Generate sequences
+        # top_k selects the top k number of next words at each step of the generation
+        # top_p selects the smallest set of words whose cumulative probability exceeds
+        # the threshold p
         outputs = model.generate(
             input_ids,
             max_length=2000,  # adjust the max length according to needs
             num_return_sequences=3,
             temperature=1,
             no_repeat_ngram_size=2,
-            top_k=50,  # select the top k number of next words at each step of the generation
-            top_p=0.9,  # select the smallest set of words whose cumulative probability exceeds the threshold p
+            top_k=50,
+            top_p=0.9,
             do_sample=True,
         )
 
@@ -50,7 +68,7 @@ def generate_yaml_files(model, tokenizer, device, num_files=10):
 
 def save_yaml_files(yaml_files):
     for idx, content in enumerate(yaml_files, 1):
-        with open(f"generated_yaml_{idx}.yaml", "w") as file:
+        with open(f"generated_yaml_{idx}.yaml", "w", encoding='utf-8') as file:
             file.write(content)
 
 
@@ -62,10 +80,11 @@ def main():
     tokenized_datasets = dataset.map(
         lambda x: tokenize_function(x, tokenizer), batched=True
     )
-    train_test_split = tokenized_datasets["train"].train_test_split(test_size=0.95)
-    small_train_dataset = train_test_split["train"]
+    data_split = tokenized_datasets["train"].train_test_split(test_size=0.95)
+    small_train_dataset = data_split["train"]
 
-    # Define the model configuration, I get the configuration by printing model config for codegen-350M
+    # Define the model configuration, I get the configuration by printing model config
+    # for codegen-350M
     config = CodeGenConfig(
         _name_or_path="Salesforce/codegen-350M-multi",
         activation_function="gelu_new",

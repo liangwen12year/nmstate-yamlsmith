@@ -320,7 +320,7 @@ min-public-methods=2
 [EXCEPTIONS]
 
 # Exceptions that will emit a warning when caught.
-overgeneral-exceptions=Exception
+overgeneral-exceptions=builtins.Exception
 
 
 [FORMAT]
@@ -430,6 +430,7 @@ disable=raw-checker-failed,
         bad-inline-option,
         locally-disabled,
         file-ignored,
+        missing-function-docstring,
         suppressed-message,
         useless-suppression,
         deprecated-pragma,
@@ -437,6 +438,7 @@ disable=raw-checker-failed,
         use-implicit-booleaness-not-comparison-to-zero,
         use-symbolic-message-instead,
         wrong-import-position
+
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
