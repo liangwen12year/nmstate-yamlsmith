@@ -6,7 +6,7 @@ the model, and generate YAML states using a trained model.
 
 ## Project Structure
 
-- `train.py`: Contains the script to train the model.
+- `./src/`: Contains the script to train the model.
 
 ## Installation
 
