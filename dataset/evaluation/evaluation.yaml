@@ -1,0 +1,501 @@
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+        ipv4:
+          address:
+            - ip: 192.10.1.51
+              prefix-length: 24
+          dhcp: false
+          enabled: true
+  question: Configure eth1 to use the IP address 192.10.1.51/24
+- answer: |
+    ---
+    interfaces:
+      - name: eth3
+        type: ethernet
+        state: up
+        ipv6:
+          address:
+            - ip: 2001:db8:1::3
+              prefix-length: 64
+          autoconf: false
+          dhcp: false
+          enabled: true
+  question: Configure eth3 to use the IP address 2001:db8:1::3/64
+- answer: |
+    ---
+    interfaces:
+      - name: eth2
+        type: ethernet
+        state: up
+        ipv4:
+          dhcp: true
+          enabled: true
+  question: Configure eth2 to use DHCP4
+- answer: |
+    ---
+    interfaces:
+      - name: eth3
+        type: ethernet
+        state: up
+        ipv6:
+          dhcp: true
+          enabled: true
+          autoconf: true
+  question: Configure eth3 to use DHCP6
+- answer: |
+    can you specify the interface name and IP address
+  question: Configure ethernet with IPv4 static IP
+- answer: |
+    ---
+    interfaces:
+      - name: bond0
+        type: bond
+        state: up
+        link-aggregation:
+          mode: active-backup
+          options:
+            miimon: 140
+          port:
+            - eth1
+            - eth2
+      - name: eth1
+        type: ethernet
+        state: up
+      - name: eth2
+        type: ethernet
+        state: up
+  question: Configure eth1 and eth2 as active-backup bond with bond name bond0
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+    routes:
+      config:
+        - next-hop-interface: eth1
+          state: absent
+  question: delete all routes on eth1 using nmstate configuration profiles
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+        ipv4:
+          address:
+            - ip: 192.168.3.2
+              prefix-length: 24
+          dhcp: false
+          enabled: true
+  question: Setup eth1 with 192.168.3.2/24
+- answer: |
+    ---
+    dns-resolver:
+      config:
+        search:
+          - example.com
+          - example.org
+        server:
+          - 2001:4860:4860::8888
+          - 8.8.8.8
+        options:
+          - rotate
+          - debug
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.0.2.1
+          next-hop-interface: eth1
+        - destination: ::/0
+          next-hop-address: 2001:db8:1::1
+          next-hop-interface: eth1
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+        ipv4:
+          address:
+            - ip: 192.0.2.10
+              prefix-length: 24
+          dhcp: false
+          enabled: true
+        ipv6:
+          address:
+            - ip: 2001:db8:1::a
+              prefix-length: 64
+          autoconf: false
+          dhcp: false
+          enabled: true
+  question: Configure eth1 with both ipv4 address 192.0.2.10/24 and IPv6 address 2001:db8:1::a/64, configure DNS search example.com and example.org,
+    configure DNS server 2001:4860:4860::8888 and 8.8.8.8, configure DNS options rotate and debug, add default routes to eth1
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+        ipv4:
+          address:
+            - ip: 192.0.2.251
+              prefix-length: 24
+          dhcp: false
+          enabled: true
+    routes:
+      config:
+        - destination: 198.51.100.0/24
+          metric: 150
+          next-hop-address: 192.0.2.1
+          next-hop-interface: eth1
+          table-id: 254
+  question: Configure eth1 with the route destination 198.51.100.0/24 and next hop address 192.0.2.1
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        state: down
+      - name: eth2
+        type: ethernet
+        state: down
+      - name: bond0
+        type: bond
+        state: absent
+      - name: br0
+        type: linux-bridge
+        state: absent
+      - name: vlan29
+        type: vlan
+        state: absent
+      - name: br29
+        type: linux-bridge
+        state: absent
+  question: Bring down eth1 and eth2, remove bond0, remove linux-bridge br0 and br29, remove vlan29
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        state: down
+      - name: eth2
+        type: ethernet
+        state: down
+      - name: bond0
+        type: bond
+        state: absent
+  question: Bring down eth1 and eth2, remove bond0
+- answer: |
+    ---
+    interfaces:
+      - name: bond0
+        type: bond
+        state: up
+        link-aggregation:
+          mode: active-backup
+          options:
+            miimon: 140
+          port:
+            - eth1
+            - eth2
+          ports-config:
+            - name: eth1
+              queue-id: 0
+              priority: -1
+            - name: eth2
+              queue-id: 1
+              priority: 2
+      - name: eth1
+        type: ethernet
+        state: up
+      - name: eth2
+        type: ethernet
+        state: up
+  question: Configure bond0 in active-backup mode with two ethernet ports eth1 and eth2
+- answer: |
+    ---
+    dns-resolver:
+      config: {}
+    interfaces: []
+  question: Remove all the DNS settings
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+        ipv4:
+          address:
+            - ip: 192.0.2.251
+              prefix-length: 24
+          dhcp: false
+          enabled: true
+    routes:
+      config:
+        - destination: 198.51.100.0/24
+          metric: 150
+          next-hop-address: 192.0.2.1
+          next-hop-interface: eth1
+          table-id: 254
+    route-rules:
+      config:192.0.2.0/24
+        - ip-to: 
+          ip-from: 198.51.100.0/24
+          priority: 100
+          route-table: 254
+          fwmark: 0x30
+          fwmask: 0x10
+  question: Configure routing rule to eth1 with src 198.51.100.0/24 and destination 192.0.2.0/24, the routing rule priority is 100 
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+        ipv4:
+          address:
+            - ip: 192.0.2.251
+              prefix-length: 24
+          dhcp: false
+          enabled: true
+
+    routes:
+      config:
+        - destination: 198.51.100.0/24
+          metric: 150
+          next-hop-address: 192.0.2.1
+          next-hop-interface: eth1
+          table-id: 254
+          cwnd: 20
+        - destination: 198.51.200.0/24
+          route-type: blackhole
+  question: Configure blackhole route with destination 198.51.200.0/24, configure static route with
+    destination 198.51.100.0/24, next hop address 192.0.2.1, and cwnd value 20
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+
+    route-rules:
+      config:
+        - route-table: 254
+          state: absent
+  question: Delete all routing rules on eth1
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+
+    routes:
+      config:
+        - next-hop-interface: eth1
+          state: absent
+  question: Delete all routes on eth1
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+        ethernet:
+          sr-iov:
+            total-vfs: 1
+            vfs:
+              - id: 0
+                mac-address: ee:2a:4e:8e:71:f5
+                spoof-check: true
+                trust: false
+                vlan-id: 102
+                qos: 5
+  question: Configure eth1 with sriov settings with 1 vf, of which the mac-address is ee:2a:4e:8e:71:f5,
+    set spoof-check to true, vlan-id is 102, qos is 5
+- answer: |
+    ---
+    interfaces:
+      - name: hsr0
+        type: hsr
+        state: absent
+  question: Remove hsr0
+- answer: |
+    ---
+    interfaces:
+      - name: hsr0
+        type: hsr
+        state: up
+        hsr:
+          port1: eth1
+          port2: eth2
+          multicast-spec: 40
+          protocol: prp
+  question: Configure hsr0 with port eth1 and eth2, set multicast-spec to 40 and protocol to prp
+- answer: |
+    ---
+    interfaces:
+      - name: mlx5_ib0.80ff
+        type: infiniband
+        state: up
+        infiniband:
+          base-iface: mlx5_ib0
+          mode: datagram
+          pkey: '0x80ff'
+  question: Configure infiniband mlx5_ib0.80ff with base interface mlx5_ib0, mode datagram, and pkey 0x80ff
+- answer: |
+    ---
+    interfaces:
+      - name: mlx5_ib0.80ff
+        type: infiniband
+        state: absent
+  question: Remove infiniband mlx5_ib0.80ff
+- answer: |
+    ---
+    interfaces:
+      - name: hosta_conn
+        type: ipsec
+        ipv4:
+          enabled: true
+          dhcp: true
+        libreswan:
+          right: 192.0.2.252
+          rightid: 'srv-id.example.org'
+          left: 192.0.2.251
+          leftid: 'cli-id.example.org'
+          psk: "psk_password"
+          ikev2: insist
+  question: Configure ipsec hosta_conn with dhcp4 enabled, set remote machine address 192.0.2.252,
+    set rightid srv-id.example.org, set local machine address 192.0.2.251, set leftid
+    cli-id.example.org, set psk to psk_password, set ikev2 to insist
+- answer: |
+    ---
+    interfaces:
+      - name: linux-br0
+        type: linux-bridge
+        state: absent
+  question: Remove linux-bridge linux-br0
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+      - name: linux-br0
+        type: linux-bridge
+        state: up
+        bridge:
+          port:
+            - name: eth1
+              stp-hairpin-mode: false
+              stp-path-cost: 100
+              stp-priority: 32
+              vlan:
+                mode: trunk
+                trunk-tags:
+                  - id: 101
+                  - id-range:
+                      min: 500
+                      max: 599
+                tag: 100
+                enable-native: true
+  question: Configure linux-bridge linux-br0 with port eth1 and vlan on eth1 is configured
+- answer: |
+    ---
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+      - name: linux-br0
+        type: linux-bridge
+        state: up
+        bridge:
+          options:
+            group-forward-mask: 0
+            mac-ageing-time: 300
+            multicast-snooping: true
+            stp:
+              enabled: true
+              forward-delay: 15
+              hello-time: 2
+              max-age: 20
+              priority: 32768
+          port:
+            - name: eth1
+              stp-hairpin-mode: false
+              stp-path-cost: 100
+              stp-priority: 32
+  question: Configure linux-bridge linux-br0 with port eth1
+- answer: |
+    ---
+    interfaces:
+      - name: macvlan0
+        type: mac-vlan
+        state: absent
+  question: Remove mac-vlan macvlan0
+- answer: |
+    ---
+    interfaces:
+      - name: macvlan0
+        type: mac-vlan
+        state: up
+        mac-vlan:
+          base-iface: eth1
+          mode: passthru
+          promiscuous: true
+  question: Configure macvlan0 with mode passthru, base-iface eth1, and promiscuous enabled 
+- answer: |
+    ---
+    interfaces:
+      - name: macvtap0
+        type: mac-vtap
+        state: absent
+  question: Remove mac-vtap macvtap0
+- answer: |
+    ---
+    interfaces:
+      - name: macvtap0
+        type: mac-vtap
+        state: up
+        mac-vtap:
+          base-iface: eth1
+          mode: passthru
+          promiscuous: true
+  question: Configure macvtap0 with mode passthru, base-iface eth1, and promiscuous enabled
+- answer: |
+    ---
+    interfaces:
+      - name: macsec0
+        type: macsec
+        state: up
+        macsec:
+          encrypt: true
+          base-iface: eth1
+          mka-cak: 50b71a8ef0bd5751ea76de6d6c98c03a
+          mka-ckn: f2b4297d39da7330910a74abc0449feb45b5c0b9fc23df1430e1898fcf1c4550
+          port: 0
+          validation: strict
+          send-sci: true
+  question: Configure macsec0 with base interface eth1
+- answer: |
+    ---
+    interfaces:
+      - name: ovs-br0
+        type: ovs-bridge
+        state: up
+        bridge:
+          options:
+            stp:
+              enabled: false
+          port:
+            - name: ovs-bond1
+              link-aggregation:
+                mode: balance-slb
+                port:
+                  - name: eth1
+                  - name: eth2
+  question: Configure ovs-bridge ovs-br0 with port ovs-bond1, the bonding mode of the port is balance-slb
+- answer: |
+    ---
+    interfaces:
+      - name: veth1
+        type: veth
+        state: up
+        veth:
+          peer: veth1peer
+  question: Bring up veth1
