@@ -1,0 +1,6 @@
+transformers>=4.33.2
+datasets>=2.18.0
+torch>=2.2.1
+PyYAML>=6.0.1
+python-Levenshtein>=0.25.1
+
