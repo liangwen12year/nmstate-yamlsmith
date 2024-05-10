@@ -14,5 +14,5 @@ Before running the script, ensure you have Python 3.8+ installed. You can then i
 the necessary dependencies by running:
 
 ```bash
-pip install transformers datasets torch sklearn
+pip install -r requirements.txt
 ```

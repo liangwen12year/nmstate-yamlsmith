@@ -16,7 +16,7 @@ Note:
   and generating files, as the operations are compute-intensive.
 """
 
-# pylint: disable=import-error
+# pylint: disable=import-error, broad-exception-caught
 from transformers import (
     CodeGenForCausalLM,
     CodeGenConfig,
@@ -37,7 +37,7 @@ def tokenize_function(examples, tokenizer):
     return tokenized_inputs
 
 
-def generate_yaml_files(model, tokenizer, device, num_files=10):
+def generate_yaml_files(model, tokenizer, device, num_files=3):
     yaml_files = []
     prompt = (
         "apiVersion: v1\nkind: "  # Adjust prompt to fit the expected YAML structure
@@ -52,35 +52,55 @@ def generate_yaml_files(model, tokenizer, device, num_files=10):
         outputs = model.generate(
             input_ids,
             max_length=2000,  # adjust the max length according to needs
-            num_return_sequences=3,
+            num_return_sequences=1,
             temperature=1,
             no_repeat_ngram_size=2,
             top_k=50,
             top_p=0.9,
             do_sample=True,
+            pad_token_id=tokenizer.eos_token_id,  # Set pad token ID to eos_token_id
         )
 
-        generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        yaml_files.append(generated_text)
+        # Convert the tensor to a list
+        generated_sequence = outputs[0].tolist()
+
+        # Ensure all tokens are valid
+        filtered_sequence = [token for token in generated_sequence if token is not None]
+
+        # Decode the filtered sequence
+        try:
+            generated_text = tokenizer.decode(
+                filtered_sequence, skip_special_tokens=True
+            )
+            yaml_files.append(generated_text)
+        except TypeError as e:
+            print(f"TypeError decoding sequence with output {outputs[0]}: {e}")
+            continue
+        except Exception as e:  # Catch any other unforeseen exceptions
+            print(f"Unexpected error decoding sequence with output {outputs[0]}: {e}")
+            raise
 
     return yaml_files
 
 
 def save_yaml_files(yaml_files):
     for idx, content in enumerate(yaml_files, 1):
-        with open(f"generated_yaml_{idx}.yaml", "w", encoding='utf-8') as file:
+        with open(f"generated_yaml_{idx}.yaml", "w", encoding="utf-8") as file:
             file.write(content)
 
 
 def main():
-    dataset = load_dataset("substratusai/the-stack-yaml-k8s")
+    # the actual dataset used for pretraining is substratusai/the-stack-yaml-k8s, use
+    # the following smaller dataset for integration test
+    dataset = load_dataset("rs0x29a/the-stack-yaml-camel-k-k8s")
     # Tokenize the dataset
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     tokenizer.pad_token = tokenizer.eos_token
     tokenized_datasets = dataset.map(
         lambda x: tokenize_function(x, tokenizer), batched=True
     )
-    data_split = tokenized_datasets["train"].train_test_split(test_size=0.95)
+    # use 0.01 size of the dataset to train for integration test
+    data_split = tokenized_datasets["train"].train_test_split(test_size=0.99)
     small_train_dataset = data_split["train"]
 
     # Define the model configuration, I get the configuration by printing model config
@@ -132,6 +152,7 @@ def main():
         prediction_loss_only=True,
         gradient_accumulation_steps=2,
         evaluation_strategy="no",
+        use_cpu=True,  # Use CPU only for integration test
     )
 
     trainer = Trainer(
@@ -145,6 +166,13 @@ def main():
     model.eval()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
+
+    # It is possible that generated YAML examples are not complete. To make
+    # the generated YAML examples complete, we can provide a more detailed
+    # prompt to guide the model or adjust the `max_length` parameter to
+    # allow the model to generate longer sequences or adjust the generation
+    # parameters like `temperature`, `top_k`, `top_p` to control the randomness
+    # and creativity of the output.
     generated_yaml_files = generate_yaml_files(model, tokenizer, device)
     for i, yaml_file in enumerate(generated_yaml_files, 1):
         print(f"Generated YAML #{i}:\n{yaml_file}\n")
