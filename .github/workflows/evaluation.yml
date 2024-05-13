@@ -1,0 +1,89 @@
+---
+name: Run YAMLsmith evaluation pipeline
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evaluation:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install Git LFS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+          git lfs install
+
+      - name: Fetch evaluation models
+        run: |
+          # Ensure the required tools are installed
+          if ! command -v git &> /dev/null; then
+            echo "Git is not installed. Installing Git..."
+            sudo apt-get update && sudo apt-get install -y git
+          fi
+
+          # Create the model directory if it doesn't exist
+          mkdir -p model
+          cd model
+
+          # Disable Git clone protection
+          export GIT_CLONE_PROTECTION_ACTIVE=false
+
+          # Clone the repository, with error handling
+          REPO_URL="https://huggingface.co/liangwen12year/yamlsmith"
+          if git clone "$REPO_URL"; then
+            echo "Repository cloned successfully."
+          else
+            echo "Failed to clone the repository from $REPO_URL"
+            exit 1
+          fi
+
+      - name: List evaluation models
+        run: ls -lh model/yamlsmith/
+
+      - name: Install Rust and Cargo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl build-essential
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+
+      - name: Clone nmstate repository
+        run: git clone https://github.com/nmstate/nmstate.git
+
+      - name: Build nmstatectl
+        run: |
+          cd nmstate/rust
+          cargo build
+
+      - name: Move nmstatectl to global path
+        run: |
+          sudo mv nmstate/rust/target/debug/nmstatectl /usr/local/bin/
+          sudo chmod +x /usr/local/bin/nmstatectl
+
+      - name: Verify nmstatectl installation
+        run: nmstatectl --version
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install transformers[torch] evaluate argparse numpy pyyaml python-Levenshtein
+
+      - name: Run evaluation script
+        run: |
+          python src/model_evaluation.py --model_path model/yamlsmith/ --data_path dataset/evaluation/evaluation.yaml --result_path evaluation_results.csv
