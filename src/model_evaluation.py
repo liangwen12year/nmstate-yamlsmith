@@ -24,9 +24,8 @@ import csv
 import json
 import os
 import shutil
-from transformers import AutoModelForCausalLM, GPT2Tokenizer
 from evaluate import load  # pylint: disable=import-self
-from utils import read_and_preprocess_data, load_yaml_dataset
+from utils import read_and_preprocess_data, load_yaml_dataset, load_model
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,16 +34,6 @@ LEVENSHTEIN_DISTANCE_METRIC_PATH = os.path.join(
     BASE_DIR, "../metrics/levenshtein_distance"
 )
 NMSTATE_CORRECT_METRIC_PATH = os.path.join(BASE_DIR, "../metrics/nmstate_correct")
-
-
-def load_model(model_path, model_type="YAMLsmith"):
-    if model_type == "YAMLsmith":
-        evaluation_tokenizer = GPT2Tokenizer.from_pretrained(model_path)
-        trained_model = AutoModelForCausalLM.from_pretrained(model_path)
-        evaluation_tokenizer.pad_token = evaluation_tokenizer.eos_token
-        return evaluation_tokenizer, trained_model
-    # TO DO: load other models like Ansible Lightspeed
-    return None, None
 
 
 def evaluate_model(
