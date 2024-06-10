@@ -119,7 +119,7 @@ def main():
         )
 
     # Launch the interface with the share parameter set to True
-    interface.launch(share=True)
+    interface.launch(share=True, server_name="0.0.0.0", server_port=7860)
 
 
 if __name__ == "__main__":
