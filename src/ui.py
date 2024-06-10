@@ -86,7 +86,7 @@ def main():
         response_output = gr.Textbox(label="Model Response", interactive=False)
         history = gr.Textbox(label="Conversation History", interactive=False)
         generate_button = gr.Button("Generate Response")
-        rating = gr.Slider(1, 5, step=1, label="Rate the response")
+        rating = gr.Slider(1, 5, step=1, label="Rate the response (1-5, 5 highest)")
         feedback_output = gr.Textbox(label="Feedback", interactive=False)
         submit_button = gr.Button("Submit Rating")
 
