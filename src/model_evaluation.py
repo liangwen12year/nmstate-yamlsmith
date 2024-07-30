@@ -23,6 +23,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import shutil
 from evaluate import load  # pylint: disable=import-self
 from utils import read_and_preprocess_data, load_yaml_dataset, load_model
@@ -34,6 +35,78 @@ LEVENSHTEIN_DISTANCE_METRIC_PATH = os.path.join(
     BASE_DIR, "../metrics/levenshtein_distance"
 )
 NMSTATE_CORRECT_METRIC_PATH = os.path.join(BASE_DIR, "../metrics/nmstate_correct")
+
+
+def read_field_list(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        fields = [line.strip() for line in file if line.strip()]
+    return fields
+
+
+def find_truncate_position(yaml_content, field_list):
+    # Match all words between "\n" and ":" and generate a list
+    matches = re.findall(r"\n\s*([a-zA-Z0-9_-]+):", yaml_content)
+    invalid_key_pos = None
+    empty_list_pos = None
+    repeated_address_pos = None
+    second_interfaces_pos = None
+    no_value_pos = None
+
+    # Find all occurrences of "interfaces"
+    interfaces_positions = [
+        m.start() for m in re.finditer(r"interfaces:\n", yaml_content)
+    ]
+
+    # Check if there's a second occurrence of "interfaces"
+    if len(interfaces_positions) > 1:
+        second_interfaces_pos = interfaces_positions[1]
+
+    # Find the first element that is not in the field_list
+    for match in matches:
+        if match not in field_list:
+            invalid_key_pos = re.search(
+                r"\n\s*" + re.escape(match) + r":", yaml_content
+            ).start()
+            break
+
+    # Find the position of the first empty list
+    empty_list_match = re.search(r"\n\s*([a-zA-Z0-9_-]+):\s*\[\]", yaml_content)
+    if empty_list_match:
+        empty_list_pos = empty_list_match.start()
+
+    # Find the position of repeated "address" immediately after "prefix-length"
+    repeated_address_match = re.search(
+        r"prefix-length:\s*\d+\s*\n\s*address:", yaml_content
+    )
+    if repeated_address_match:
+        repeated_address_pos = repeated_address_match.start() + len("prefix-length:\n")
+
+    # Find the position where there is no value (e.g., "auto-route-table:")
+    no_value_match = re.search(r"\n\s*([a-zA-Z0-9_-]+)\s*(\n|$)", yaml_content)
+    if no_value_match:
+        no_value_pos = no_value_match.start()
+
+    # Determine the earliest position for truncation
+    positions = [
+        pos
+        for pos in [
+            second_interfaces_pos,
+            invalid_key_pos,
+            empty_list_pos,
+            repeated_address_pos,
+            no_value_pos,
+        ]
+        if pos is not None
+    ]
+    if positions:
+        return min(positions)
+    return None
+
+
+def truncate_yaml(yaml_content, truncate_pos):
+    if truncate_pos is not None:
+        return yaml_content[:truncate_pos]
+    return yaml_content
 
 
 def evaluate_model(
@@ -52,6 +125,7 @@ def evaluate_model(
             expected_answer = data["answer"]
             expected_answer_list.append(expected_answer)
             answer = generate_answer(question, evaluation_tokenizer, trained_model)
+            print(answer)
             generated_answer_list.append(answer)
         with open(cache_file, "w", encoding="utf-8") as f:
             json.dump(
@@ -113,13 +187,19 @@ def check_nmstatectl():
         raise FileNotFoundError("'nmstatectl' not found in the system path.")
 
 
-def generate_answer(question, evaluation_tokenizer, trained_model):
+def generate_answer(
+    question, evaluation_tokenizer, trained_model, key_list_file="key_list"
+):
     # Tokenize the question
+    field_list = read_field_list(key_list_file)
     inputs = evaluation_tokenizer.encode(question, return_tensors="pt")
 
     # Generate the answer
     outputs = trained_model.generate(
-        inputs, max_length=500, pad_token_id=evaluation_tokenizer.eos_token_id
+        inputs,
+        max_length=150,
+        pad_token_id=evaluation_tokenizer.eos_token_id,
+        num_return_sequences=1,
     )
     answer = evaluation_tokenizer.decode(outputs[0], skip_special_tokens=True)
 
@@ -133,7 +213,16 @@ def generate_answer(question, evaluation_tokenizer, trained_model):
     if index not in [0, -1]:
         cleaned_answer = cleaned_answer[index:].strip()
 
-    return cleaned_answer
+    # Clean the YAML content
+    cleaned_yaml_content = cleaned_answer.replace("---\n", "", 1).strip()
+
+    # Find the truncate position based on the first invalid key or empty list
+    truncate_pos = find_truncate_position(cleaned_yaml_content, field_list)
+
+    # Truncate the YAML content at the determined position
+    truncated_yaml = truncate_yaml(cleaned_yaml_content, truncate_pos)
+
+    return truncated_yaml
 
 
 def write_results_to_csv(results, filename):

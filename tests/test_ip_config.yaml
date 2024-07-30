@@ -1,0 +1,103 @@
+- question: Configure eth1 to use the IP address 192.10.1.51/24
+  answer: |
+    interfaces:
+      - name: eth1
+        type: ethernet
+        state: up
+        ipv4:
+          address:
+            - ip: 192.10.1.51
+              prefix-length: 24
+          dhcp: false
+          enabled: true
+- question: Configure eth3 to use the IP address 2001:db8:1::3/64
+  answer: |
+    interfaces:
+      - name: eth3
+        type: ethernet
+        state: up
+        ipv6:
+          address:
+            - ip: 2001:db8:1::3
+              prefix-length: 64
+          autoconf: false
+          dhcp: false
+          enabled: true
+- question: configure eth6 to use the ip address 8.8.8.8/16
+  answer: |
+    interfaces:
+      - name: eth6
+        type: ethernet
+        state: up
+        ipv4:
+          address:
+            - ip: 8.8.8.8
+              prefix-length: 16
+          dhcp: false
+          enabled: true
+- question: set up dummy0 with the ip address 172.32.32.32/16
+  answer: |
+    interfaces:
+      - name: dummy0
+        type: dummy
+        state: up
+        ipv4:
+          address:
+            - ip: 172.32.32.32
+              prefix-length: 16
+          dhcp: false
+          enabled: true
+- question: configure the ethernet device en19p3s12 to have the static ipv6 address 2001:db8:25::62/32
+  answer: |
+    interfaces:
+    - name: en19p3s12
+      type: ethernet
+      state: up
+      ipv6:
+        enabled: true
+        dhcp: false
+        autoconf: false
+        address:
+        - ip: 2001:db8:25::62
+          prefix-length: 64
+- question: set up the dummy99 with ipv6 address 2001:db6:25::14/64
+  answer: |
+    interfaces:
+    - name: dummy99
+      type: dummy
+      state: up
+      ipv6:
+        enabled: true
+        dhcp: false
+        autoconf: false
+        address:
+        - ip: 2001:db6:25::14
+          prefix-length: 64
+- question: configure ethernet device eno8 to use dhcp4
+  answer: |
+    interfaces:
+    - name: eno8
+      type: ethernet
+      state: up
+      ipv4:
+        enabled: true
+        dhcp: true
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        auto-route-table-id: 0
+- question: Set up ethernet eno3 with dhcp6 enabled
+  answer: |
+    interfaces:
+    - name: eno3
+      type: ethernet
+      state: up
+      ipv6:
+        enabled: true
+        dhcp: true
+        autoconf: true
+        auto-dns: true
+        auto-gateway: true
+        auto-routes: true
+        auto-route-table-id: 0
+

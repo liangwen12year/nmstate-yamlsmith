@@ -13,7 +13,7 @@ Usage:
 
 # pylint: disable=import-error
 import yaml
-from transformers import AutoModelForCausalLM, GPT2Tokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, GPT2Tokenizer
 
 
 def read_and_preprocess_data(data):
@@ -41,11 +41,19 @@ def load_yaml_dataset(file_path):
     return data
 
 
-def load_model(model_path, model_type="YAMLsmith"):
+def load_model(model_path, model_type="Instruct"):
     if model_type == "YAMLsmith":
         evaluation_tokenizer = GPT2Tokenizer.from_pretrained(model_path)
         trained_model = AutoModelForCausalLM.from_pretrained(model_path)
-        evaluation_tokenizer.pad_token = evaluation_tokenizer.eos_token
+        if evaluation_tokenizer.pad_token is None:
+            evaluation_tokenizer.pad_token = evaluation_tokenizer.eos_token
+        return evaluation_tokenizer, trained_model
+
+    if model_type == "Instruct":
+        evaluation_tokenizer = AutoTokenizer.from_pretrained(model_path)
+        trained_model = AutoModelForCausalLM.from_pretrained(model_path)
+        if evaluation_tokenizer.pad_token is None:
+            evaluation_tokenizer.pad_token = evaluation_tokenizer.eos_token
         return evaluation_tokenizer, trained_model
     # TO DO: load other models like Ansible Lightspeed
     return None, None

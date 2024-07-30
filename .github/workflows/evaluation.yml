@@ -39,7 +39,8 @@ jobs:
           # Disable Git clone protection
           export GIT_CLONE_PROTECTION_ACTIVE=false
 
-          # Clone the repository, with error handling
+          # Clone only LFS pointers
+          export GIT_LFS_SKIP_SMUDGE=1
           REPO_URL="https://huggingface.co/liangwen12year/yamlsmith"
           if git clone "$REPO_URL"; then
             echo "Repository cloned successfully."
@@ -47,6 +48,17 @@ jobs:
             echo "Failed to clone the repository from $REPO_URL"
             exit 1
           fi
+
+          cd yamlsmith
+          git lfs pull
+
+          # Verify all expected files are present
+          for shard in {1..4}; do
+            if [ ! -f "pytorch_model-0000${shard}-of-00004.bin" ]; then
+              echo "Missing shard file: pytorch_model-0000${shard}-of-00004.bin"
+              exit 1
+            fi
+          done
 
       - name: List evaluation models
         run: ls -lh model/yamlsmith/
@@ -79,11 +91,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Cache Python packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install transformers[torch] evaluate argparse numpy pyyaml python-Levenshtein
+          pip install transformers[torch] evaluate argparse numpy pyyaml python-Levenshtein safetensors
 
       - name: Run evaluation script
         run: |
           python src/model_evaluation.py --model_path model/yamlsmith/ --data_path dataset/evaluation/evaluation.yaml --result_path evaluation_results.csv
+
+      - name: Clean up
+        run: |
+          sudo rm -rf model/yamlsmith
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
